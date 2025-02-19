@@ -1,13 +1,15 @@
 import asyncio
+from datetime import datetime
 from crawl4ai import AsyncWebCrawler
 from pydantic_ai_expert import pydantic_ai_expert
 
 async def main():
+    # Get the URL from command line or use a default
+    import sys
+    url = sys.argv[1] if len(sys.argv) > 1 else "https://example.com"
+    print(f"Crawling URL: {url}")
     # Initialize the crawler
     async with AsyncWebCrawler() as crawler:
-        # Replace this URL with the website you want to scrape
-        url = "https://example.com"
-        
         # Crawl the page
         result = await crawler.arun(
             url=url,
@@ -18,16 +20,15 @@ async def main():
         )
         
         # Print the scraped content in markdown format
-        print("Scraped Content:")
+        print("\nScraped Content:")
+        print("-" * 50)
+        print(f"Title: {result.title}")
+        print(f"Number of links found: {len(result.links)}")
+        print("-" * 50)
         print(result.markdown)
+        print("-" * 50)
         
-        # The result also contains:
-        # result.text - plain text content
-        # result.html - raw HTML content
-        # result.links - list of links found on the page
-        # result.title - page title
-        
-        # You can also store the results in Supabase using the pydantic_ai_expert
+        print("\nStoring in Supabase...")
         expert = pydantic_ai_expert()
         await expert.store_page(
             url=url,
@@ -35,9 +36,14 @@ async def main():
             content=result.text,
             metadata={
                 "source": "web_crawler",
-                "timestamp": str(datetime.now())
+                "timestamp": str(datetime.now()),
+                "num_links": len(result.links)
             }
         )
+        print("Content stored successfully!")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"Error: {str(e)}")
